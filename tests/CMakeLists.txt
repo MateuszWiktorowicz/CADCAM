@@ -2,6 +2,7 @@ find_package(GTest CONFIG REQUIRED)
 
 add_executable(toolpath_tests
     ProfileOperationTests.cpp
+    SketchGeometryTests.cpp
 )
 
 target_link_libraries(toolpath_tests
@@ -12,4 +13,3 @@ target_link_libraries(toolpath_tests
 
 include(GoogleTest)
 gtest_discover_tests(toolpath_tests)
-
