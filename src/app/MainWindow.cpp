@@ -4,11 +4,15 @@
 #include "toolpath/core/GCodeWriter.hpp"
 #include "toolpath/core/ProfileOperation.hpp"
 
+#include <QAction>
+#include <QActionGroup>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTextEdit>
@@ -22,6 +26,22 @@ MainWindow::MainWindow(QWidget* parent)
 {
     setWindowTitle("Toolpath Studio");
 
+    auto* geometryMenu = menuBar()->addMenu("Geometry");
+    geometryActions_ = new QActionGroup(this);
+    geometryActions_->setExclusive(true);
+
+    selectAction_ = geometryMenu->addAction("Select");
+    lineAction_ = geometryMenu->addAction("Line");
+    rectangleAction_ = geometryMenu->addAction("Rectangle");
+    circleAction_ = geometryMenu->addAction("Circle");
+    arcAction_ = geometryMenu->addAction("Arc");
+
+    for (auto* action : {selectAction_, lineAction_, rectangleAction_, circleAction_, arcAction_}) {
+        action->setCheckable(true);
+        geometryActions_->addAction(action);
+    }
+    rectangleAction_->setChecked(true);
+
     auto* root = new QWidget(this);
     auto* layout = new QHBoxLayout(root);
 
@@ -31,14 +51,23 @@ MainWindow::MainWindow(QWidget* parent)
 
     auto* sketchLabel = new QLabel("Sketch", controls);
     selectButton_ = new QPushButton("Select", controls);
+    lineButton_ = new QPushButton("Line", controls);
     rectangleButton_ = new QPushButton("Rectangle", controls);
+    circleButton_ = new QPushButton("Circle", controls);
+    arcButton_ = new QPushButton("Arc", controls);
     selectButton_->setCheckable(true);
+    lineButton_->setCheckable(true);
     rectangleButton_->setCheckable(true);
+    circleButton_->setCheckable(true);
+    arcButton_->setCheckable(true);
     rectangleButton_->setChecked(true);
 
-    auto* sketchTools = new QHBoxLayout();
-    sketchTools->addWidget(selectButton_);
-    sketchTools->addWidget(rectangleButton_);
+    auto* sketchTools = new QGridLayout();
+    sketchTools->addWidget(selectButton_, 0, 0);
+    sketchTools->addWidget(lineButton_, 0, 1);
+    sketchTools->addWidget(rectangleButton_, 1, 0);
+    sketchTools->addWidget(circleButton_, 1, 1);
+    sketchTools->addWidget(arcButton_, 2, 0, 1, 2);
 
     auto* form = new QFormLayout();
     toolInput_ = new QDoubleSpinBox(controls);
@@ -86,8 +115,16 @@ MainWindow::MainWindow(QWidget* parent)
 
     view_->setMode(ToolpathView::Mode::DrawRectangle);
 
+    connect(selectAction_, &QAction::triggered, this, &MainWindow::useSelectTool);
+    connect(lineAction_, &QAction::triggered, this, &MainWindow::useLineTool);
+    connect(rectangleAction_, &QAction::triggered, this, &MainWindow::useRectangleTool);
+    connect(circleAction_, &QAction::triggered, this, &MainWindow::useCircleTool);
+    connect(arcAction_, &QAction::triggered, this, &MainWindow::useArcTool);
     connect(selectButton_, &QPushButton::clicked, this, &MainWindow::useSelectTool);
+    connect(lineButton_, &QPushButton::clicked, this, &MainWindow::useLineTool);
     connect(rectangleButton_, &QPushButton::clicked, this, &MainWindow::useRectangleTool);
+    connect(circleButton_, &QPushButton::clicked, this, &MainWindow::useCircleTool);
+    connect(arcButton_, &QPushButton::clicked, this, &MainWindow::useArcTool);
     connect(view_, &ToolpathView::profileChanged, this, &MainWindow::setActiveProfile);
     connect(generateButton, &QPushButton::clicked, this, &MainWindow::generateToolpath);
     connect(exportButton, &QPushButton::clicked, this, &MainWindow::exportGCode);
@@ -133,16 +170,44 @@ void MainWindow::exportGCode()
 
 void MainWindow::useSelectTool()
 {
-    selectButton_->setChecked(true);
-    rectangleButton_->setChecked(false);
-    view_->setMode(ToolpathView::Mode::Select);
+    setSketchMode(ToolpathView::Mode::Select);
+}
+
+void MainWindow::useLineTool()
+{
+    setSketchMode(ToolpathView::Mode::DrawLine);
 }
 
 void MainWindow::useRectangleTool()
 {
-    selectButton_->setChecked(false);
-    rectangleButton_->setChecked(true);
-    view_->setMode(ToolpathView::Mode::DrawRectangle);
+    setSketchMode(ToolpathView::Mode::DrawRectangle);
+}
+
+void MainWindow::useCircleTool()
+{
+    setSketchMode(ToolpathView::Mode::DrawCircle);
+}
+
+void MainWindow::useArcTool()
+{
+    setSketchMode(ToolpathView::Mode::DrawArc);
+}
+
+void MainWindow::setSketchMode(ToolpathView::Mode mode)
+{
+    selectButton_->setChecked(mode == ToolpathView::Mode::Select);
+    lineButton_->setChecked(mode == ToolpathView::Mode::DrawLine);
+    rectangleButton_->setChecked(mode == ToolpathView::Mode::DrawRectangle);
+    circleButton_->setChecked(mode == ToolpathView::Mode::DrawCircle);
+    arcButton_->setChecked(mode == ToolpathView::Mode::DrawArc);
+
+    selectAction_->setChecked(mode == ToolpathView::Mode::Select);
+    lineAction_->setChecked(mode == ToolpathView::Mode::DrawLine);
+    rectangleAction_->setChecked(mode == ToolpathView::Mode::DrawRectangle);
+    circleAction_->setChecked(mode == ToolpathView::Mode::DrawCircle);
+    arcAction_->setChecked(mode == ToolpathView::Mode::DrawArc);
+
+    view_->setMode(mode);
 }
 
 void MainWindow::setActiveProfile(const toolpath::core::Polyline2D& profile)

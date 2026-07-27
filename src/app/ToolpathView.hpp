@@ -1,6 +1,10 @@
 #pragma once
 
 #include "toolpath/core/Toolpath.hpp"
+#include "toolpath/sketch/Arc2D.hpp"
+#include "toolpath/sketch/Circle2D.hpp"
+#include "toolpath/sketch/LineSegment2D.hpp"
+#include "toolpath/sketch/Sketch2D.hpp"
 
 #include <QOpenGLFunctions>
 #include <QOpenGLWidget>
@@ -13,7 +17,10 @@ class ToolpathView final : public QOpenGLWidget, protected QOpenGLFunctions {
 public:
     enum class Mode {
         Select,
-        DrawRectangle
+        DrawLine,
+        DrawRectangle,
+        DrawCircle,
+        DrawArc
     };
 
     explicit ToolpathView(QWidget* parent = nullptr);
@@ -44,8 +51,16 @@ private:
 
     void drawGrid(QPainter& painter) const;
     void drawProfile(QPainter& painter, const toolpath::core::Polyline2D& profile, const QColor& color, double width) const;
+    void drawLineSegment(QPainter& painter, const toolpath::sketch::LineSegment2D& line, const QColor& color, double width) const;
+    void drawCircle(QPainter& painter, const toolpath::sketch::Circle2D& circle, const QColor& color, double width) const;
+    void drawArc(QPainter& painter, const toolpath::sketch::Arc2D& arc, const QColor& color, double width) const;
+    void drawSketch(QPainter& painter) const;
+    void drawPreview(QPainter& painter) const;
     void drawToolpath(QPainter& painter) const;
     void drawCoordinateSystem(QPainter& painter) const;
+    [[nodiscard]] toolpath::sketch::LineSegment2D previewLine() const;
+    [[nodiscard]] toolpath::sketch::Circle2D previewCircle() const;
+    [[nodiscard]] toolpath::sketch::Arc2D previewArc() const;
 
     Mode mode_{Mode::Select};
     double scalePxPerMm_{8.0};
@@ -54,5 +69,6 @@ private:
     toolpath::core::Point2D dragStart_{0.0, 0.0};
     toolpath::core::Point2D dragCurrent_{0.0, 0.0};
     std::optional<toolpath::core::Polyline2D> profile_;
+    toolpath::sketch::Sketch2D sketch_;
     toolpath::core::Toolpath toolpath_;
 };
