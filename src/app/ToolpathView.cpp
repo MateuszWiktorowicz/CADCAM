@@ -1,5 +1,9 @@
 #include "ToolpathView.hpp"
 
+#ifdef TOOLPATH_HAS_CAD
+#include "toolpath/cad/CartesianCoordinateSystem.hpp"
+#endif
+
 #include <QMouseEvent>
 #include <QPainter>
 
@@ -52,6 +56,7 @@ void ToolpathView::paintGL()
     painter.fillRect(rect(), QColor(21, 24, 28));
 
     drawGrid(painter);
+    drawCoordinateSystem(painter);
 
     if (profile_) {
         drawProfile(painter, *profile_, QColor(235, 238, 242), 2.0);
@@ -222,4 +227,47 @@ void ToolpathView::drawToolpath(QPainter& painter) const
     }
 
     painter.restore();
+}
+
+void ToolpathView::drawCoordinateSystem(QPainter& painter) const
+{
+#ifdef TOOLPATH_HAS_CAD
+    const toolpath::cad::CartesianCoordinateSystem coordinateSystem;
+    const double axisLengthMm = 25.0;
+
+    const auto project = [](const toolpath::core::Point3D& point) {
+        return toolpath::core::Point2D{
+            point.x() + point.z() * 0.35,
+            point.y() + point.z() * 0.35
+        };
+    };
+
+    const auto drawAxis = [&](const toolpath::cad::AxisSegment3D& axis, const QColor& color, const QString& label) {
+        const auto start = worldToScreen(project(axis.start));
+        const auto end = worldToScreen(project(axis.end));
+
+        painter.setPen(QPen(color, 2.4));
+        painter.drawLine(start, end);
+
+        painter.setBrush(color);
+        painter.setPen(Qt::NoPen);
+        painter.drawEllipse(end, 4.0, 4.0);
+
+        painter.setPen(color);
+        painter.drawText(end + QPointF{6.0, -6.0}, label);
+    };
+
+    painter.save();
+    drawAxis(coordinateSystem.xAxis(axisLengthMm), QColor(235, 90, 90), "X");
+    drawAxis(coordinateSystem.yAxis(axisLengthMm), QColor(90, 220, 140), "Y");
+    drawAxis(coordinateSystem.zAxis(axisLengthMm), QColor(95, 155, 255), "Z");
+
+    const auto origin = worldToScreen(project(coordinateSystem.origin()));
+    painter.setBrush(QColor(235, 238, 242));
+    painter.setPen(Qt::NoPen);
+    painter.drawEllipse(origin, 3.5, 3.5);
+    painter.restore();
+#else
+    (void)painter;
+#endif
 }

@@ -21,6 +21,7 @@ target_link_libraries(toolpath_app
 
 if(TARGET ToolpathStudio::Cad)
     target_link_libraries(toolpath_app PRIVATE ToolpathStudio::Cad)
+    target_compile_definitions(toolpath_app PRIVATE TOOLPATH_HAS_CAD)
 endif()
 
 target_compile_features(toolpath_app PRIVATE cxx_std_20)
@@ -29,4 +30,3 @@ set_target_properties(toolpath_app PROPERTIES
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )
-

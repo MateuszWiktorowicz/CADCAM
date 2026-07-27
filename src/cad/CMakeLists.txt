@@ -1,6 +1,7 @@
 find_package(OpenCASCADE REQUIRED)
 
 add_library(toolpath_cad
+    CartesianCoordinateSystem.cpp
     StepLoader.cpp
 )
 
@@ -14,8 +15,8 @@ target_include_directories(toolpath_cad
 
 target_link_libraries(toolpath_cad
     PUBLIC
+        ToolpathStudio::Core
         ${OpenCASCADE_LIBRARIES}
 )
 
 target_compile_features(toolpath_cad PUBLIC cxx_std_20)
-

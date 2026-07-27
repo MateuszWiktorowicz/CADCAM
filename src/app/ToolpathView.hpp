@@ -45,6 +45,7 @@ private:
     void drawGrid(QPainter& painter) const;
     void drawProfile(QPainter& painter, const toolpath::core::Polyline2D& profile, const QColor& color, double width) const;
     void drawToolpath(QPainter& painter) const;
+    void drawCoordinateSystem(QPainter& painter) const;
 
     Mode mode_{Mode::Select};
     double scalePxPerMm_{8.0};
