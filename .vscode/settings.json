@@ -1,0 +1,10 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/include",
+    "/opt/homebrew/include/eigen3",
+    "/opt/homebrew/include/opencascade"
+  ],
+  "C_Cpp.default.cppStandard": "c++20",
+  "C_Cpp.default.intelliSenseMode": "macos-clang-arm64"
+}
