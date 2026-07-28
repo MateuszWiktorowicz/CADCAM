@@ -6,6 +6,7 @@
 
 #include <QMouseEvent>
 #include <QPainter>
+#include <QWheelEvent>
 
 #include <algorithm>
 #include <cmath>
@@ -22,6 +23,7 @@ ToolpathView::ToolpathView(QWidget* parent)
 void ToolpathView::setMode(Mode mode)
 {
     mode_ = mode;
+    panning_ = false;
     setCursor(mode_ == Mode::Select ? Qt::ArrowCursor : Qt::CrossCursor);
 }
 
@@ -72,7 +74,12 @@ void ToolpathView::paintGL()
 
 void ToolpathView::mousePressEvent(QMouseEvent* event)
 {
-    if (mode_ == Mode::Select || event->button() != Qt::LeftButton) {
+    if (event->button() != Qt::LeftButton) {
+        return;
+    }
+
+    if (mode_ == Mode::Select) {
+        startPan(event->position());
         return;
     }
 
@@ -84,6 +91,11 @@ void ToolpathView::mousePressEvent(QMouseEvent* event)
 
 void ToolpathView::mouseMoveEvent(QMouseEvent* event)
 {
+    if (panning_) {
+        updatePan(event->position());
+        return;
+    }
+
     if (!drawing_) {
         return;
     }
@@ -94,6 +106,11 @@ void ToolpathView::mouseMoveEvent(QMouseEvent* event)
 
 void ToolpathView::mouseReleaseEvent(QMouseEvent* event)
 {
+    if (panning_ && event->button() == Qt::LeftButton) {
+        finishPan();
+        return;
+    }
+
     if (!drawing_ || event->button() != Qt::LeftButton) {
         return;
     }
@@ -128,19 +145,22 @@ void ToolpathView::mouseReleaseEvent(QMouseEvent* event)
     update();
 }
 
+void ToolpathView::wheelEvent(QWheelEvent* event)
+{
+    constexpr double zoomInFactor = 1.15;
+    camera_.zoomByFactor(event->angleDelta().y() > 0 ? zoomInFactor : 1.0 / zoomInFactor);
+
+    update();
+}
+
 toolpath::core::Point2D ToolpathView::screenToWorld(const QPoint& point) const
 {
-    const double x = (point.x() - width() * 0.5) / scalePxPerMm_;
-    const double y = (height() * 0.5 - point.y()) / scalePxPerMm_;
-    return toolpath::core::Point2D{x, y};
+    return camera_.screenToWorld(point, size());
 }
 
 QPointF ToolpathView::worldToScreen(const toolpath::core::Point2D& point) const
 {
-    return QPointF{
-        width() * 0.5 + point.x() * scalePxPerMm_,
-        height() * 0.5 - point.y() * scalePxPerMm_
-    };
+    return camera_.worldToScreen(point, size());
 }
 
 toolpath::core::Polyline2D ToolpathView::rectangleFromCorners(
@@ -171,6 +191,27 @@ toolpath::core::Point2D ToolpathView::snapToGrid(const toolpath::core::Point2D& 
         std::round(point.x()),
         std::round(point.y())
     };
+}
+
+void ToolpathView::startPan(const QPointF& screenPosition)
+{
+    panning_ = true;
+    lastPanScreenPosition_ = screenPosition;
+    setCursor(Qt::ClosedHandCursor);
+}
+
+void ToolpathView::updatePan(const QPointF& screenPosition)
+{
+    const QPointF deltaPx = screenPosition - lastPanScreenPosition_;
+    camera_.panByPixels(deltaPx);
+    lastPanScreenPosition_ = screenPosition;
+    update();
+}
+
+void ToolpathView::finishPan()
+{
+    panning_ = false;
+    setCursor(mode_ == Mode::Select ? Qt::ArrowCursor : Qt::CrossCursor);
 }
 
 void ToolpathView::drawGrid(QPainter& painter) const
@@ -229,7 +270,7 @@ void ToolpathView::drawCircle(QPainter& painter, const toolpath::sketch::Circle2
     }
 
     const auto center = worldToScreen(circle.center);
-    const double radiusPx = circle.radiusMm * scalePxPerMm_;
+    const double radiusPx = circle.radiusMm * camera_.scalePxPerMm();
 
     painter.save();
     painter.setPen(QPen(color, width));

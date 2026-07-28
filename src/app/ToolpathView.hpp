@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ViewportCamera2D.hpp"
 #include "toolpath/core/Toolpath.hpp"
 #include "toolpath/sketch/Arc2D.hpp"
 #include "toolpath/sketch/Circle2D.hpp"
@@ -8,6 +9,7 @@
 
 #include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QPointF>
 
 #include <optional>
 
@@ -39,6 +41,7 @@ protected:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
 
 private:
     [[nodiscard]] toolpath::core::Point2D screenToWorld(const QPoint& point) const;
@@ -49,6 +52,9 @@ private:
     ) const;
     [[nodiscard]] toolpath::core::Point2D snapToGrid(const toolpath::core::Point2D& point) const;
 
+    void startPan(const QPointF& screenPosition);
+    void updatePan(const QPointF& screenPosition);
+    void finishPan();
     void drawGrid(QPainter& painter) const;
     void drawProfile(QPainter& painter, const toolpath::core::Polyline2D& profile, const QColor& color, double width) const;
     void drawLineSegment(QPainter& painter, const toolpath::sketch::LineSegment2D& line, const QColor& color, double width) const;
@@ -63,8 +69,10 @@ private:
     [[nodiscard]] toolpath::sketch::Arc2D previewArc() const;
 
     Mode mode_{Mode::Select};
-    double scalePxPerMm_{8.0};
     double gridStepMm_{5.0};
+    ViewportCamera2D camera_;
+    bool panning_{false};
+    QPointF lastPanScreenPosition_{0.0, 0.0};
     bool drawing_{false};
     toolpath::core::Point2D dragStart_{0.0, 0.0};
     toolpath::core::Point2D dragCurrent_{0.0, 0.0};

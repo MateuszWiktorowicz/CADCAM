@@ -7,6 +7,8 @@ qt_add_executable(toolpath_app
     main.cpp
     MainWindow.cpp
     MainWindow.hpp
+    ViewportCamera2D.cpp
+    ViewportCamera2D.hpp
     ToolpathView.cpp
     ToolpathView.hpp
 )
